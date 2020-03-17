@@ -7,13 +7,14 @@ import (
 )
 
 var (
-	mousePos     rl.Vector2
-	mousePosLast rl.Vector2
+	mousePos        rl.Vector2
+	mousePosLast    rl.Vector2
+	recognizedDigit int
 )
 
 const (
-	windowHeight = 600
-	windowWidth  = 400
+	windowHeight = 560
+	windowWidth  = 560
 )
 
 // Draws is draw
@@ -27,7 +28,7 @@ func main() {
 	rl.ClearBackground(rl.White)
 	rl.EndTextureMode()
 
-	var brushSize float32 = 10
+	var brushSize float32 = 30
 	chosenColor := rl.Black
 	toClear := false
 
@@ -41,6 +42,8 @@ func main() {
 		if rl.IsKeyPressed(rl.KeyS) {
 			image := rl.GetTextureData(canvas.Texture)
 			rl.ImageFlipVertical(image)
+			rl.ImageColorInvert(image)    // Invert color
+			rl.ImageResize(image, 28, 28) // Resize image to size corresponding to MNIST dataset
 			rl.ExportImage(*image, "images/mypainting.png")
 			rl.UnloadImage(image)
 
@@ -50,7 +53,22 @@ func main() {
 
 		// Run neural network to recognize digit
 		if rl.IsKeyPressed(rl.KeyR) {
-			NN()
+			recognizedDigit = NN()
+		}
+
+		// Brush resizing
+		if rl.IsKeyPressed(rl.KeyUp) {
+			brushSize += 5
+			if brushSize > 50 {
+				brushSize = 50
+			}
+		}
+
+		if rl.IsKeyPressed(rl.KeyDown) {
+			brushSize -= 5
+			if brushSize < 10 {
+				brushSize = 10
+			}
 		}
 
 		// -------
@@ -64,6 +82,7 @@ func main() {
 			rl.BeginTextureMode(canvas)
 			// rl.DrawCircle(int32(mousePos.X), int32(mousePos.Y), brushSize, chosenColor)
 			rl.DrawLineEx(mousePos, mousePosLast, brushSize, chosenColor)
+			rl.DrawCircle(int32(mousePos.X), int32(mousePos.Y), brushSize, chosenColor)
 			rl.EndTextureMode()
 		}
 
@@ -76,6 +95,7 @@ func main() {
 		rl.DrawCircle(int32(mousePos.X), int32(mousePos.Y), brushSize, chosenColor)
 		rl.DrawCircleLines(int32(mousePos.X), int32(mousePos.Y), brushSize, rl.Black)
 		rl.DrawText(fmt.Sprintf("%.f %.f", mousePos.X, mousePos.Y), 20, 20, 20, rl.Black)
+		rl.DrawText(fmt.Sprintf("Recognized digit: %d", recognizedDigit), 20, 50, 20, rl.Black)
 
 		// Clear the canvas
 		if rl.IsKeyPressed(rl.KeyC) || toClear {

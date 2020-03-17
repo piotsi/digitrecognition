@@ -1,6 +1,7 @@
-package digitrecognition
+package main
 
 import (
+	"fmt"
 	"math"
 	"time"
 
@@ -18,16 +19,19 @@ type Data struct {
 }
 
 // Remove this after production of nn.go to run *.go
-func main() {
-	NN()
-}
+// func main() {
+// 	NN()
+// }
 
 // NN is a neural network
-func NN() {
+func NN() int {
 	rand.Seed(time.Now().UnixNano()) // Initialize global Source of pseud-random values
-	var d Data
-	d.gcreateModel(784, 5, 10)
-
+	var net Data
+	net.createModel(10, 5, 10)
+	var input = []float64{1, 2, 3, 4}
+	var prediction = net.predict(input)
+	fmt.Println(prediction)
+	return 0
 	// adata := []float64{1, 2, 3, 4}
 	// bdata := []float64{1, 2, 3, 4}
 	// a := mat.NewDense(2, 2, adata)
@@ -37,38 +41,39 @@ func NN() {
 
 }
 
-func (d *Data) createModel(ls ...int32) {
+func (net *Data) createModel(ls ...int32) {
 	// Define layer sizes (neurons in each layer)
-	d.layerSizes = ls
+	net.layerSizes = ls
 
 	// Define weight matrix sizes (m by n synapses between each layer)
-	for i := 1; i < len(d.layerSizes); i++ {
-		d.weightShapes = append(d.weightShapes, []int32{d.layerSizes[i], d.layerSizes[i-1]})
+	for i := 1; i < len(net.layerSizes); i++ {
+		net.weightShapes = append(net.weightShapes, []int32{net.layerSizes[i], net.layerSizes[i-1]})
 	}
 
 	// Fill each weight matrix with normally distributed value
-	d.weights = make([]*mat.Dense, len(d.weightShapes))
-	for i, ws := range d.weightShapes {
+	net.weights = make([]*mat.Dense, len(net.weightShapes))
+	for i, ws := range net.weightShapes {
 		data := make([]float64, ws[0]*ws[1])
 		for j := range data {
 			data[j] = rand.NormFloat64()
 		}
-		d.weights[i] = mat.NewDense(int(ws[0]), int(ws[1]), data)
+		net.weights[i] = mat.NewDense(int(ws[0]), int(ws[1]), data)
 	}
 
 	// Create biases matrices filled with zeros
-	d.biases = make([]*mat.Dense, len(d.weightShapes))
-	for i, ls := range d.layerSizes {
+	net.biases = make([]*mat.Dense, len(net.weightShapes))
+	for i, ls := range net.layerSizes {
 		if i > 0 {
 			zeros := make([]float64, ls)
-			d.biases[i-1] = mat.NewDense(int(ls), 1, zeros)
+			net.biases[i-1] = mat.NewDense(int(ls), 1, zeros)
 		}
 	}
 }
 
-// def (d *Data) predict() {
-// 	return
-// }
+func (net *Data) predict(input []float64) []float64 {
+	var prediction = []float64{1, 2, 3}
+	return prediction
+}
 
 // Add two matrices
 func add(a, b mat.Matrix) mat.Matrix {
@@ -82,7 +87,7 @@ func add(a, b mat.Matrix) mat.Matrix {
 func matmul(a, b mat.Matrix) mat.Matrix {
 	m, _ := a.Dims()             // Get dimensions of first matrix
 	_, n := b.Dims()             // Get dimensions of second matrix
-	c := mat.NewDense(m, n, nil) // The result matrix has to have the m columns of the first matrix and n rows of the second
+	c := mat.NewDense(m, n, nil) // The result matrix has to have the m rows of the first matrix and n columns of the second
 	c.Product(a, b)              // Multiply two matrices and place result into receiver
 	return c
 }

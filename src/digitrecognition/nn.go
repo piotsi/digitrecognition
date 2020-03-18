@@ -1,4 +1,4 @@
-package main
+package main // Change to digitrecognition when finished
 
 import (
 	"fmt"
@@ -19,28 +19,31 @@ type Data struct {
 }
 
 // Remove this after production of nn.go to run *.go
-// func main() {
-// 	NN()
-// }
+// Seperate training and predicting
+func main() {
+	NN()
+}
 
 // NN is a neural network
 func NN() int {
 	rand.Seed(time.Now().UnixNano()) // Initialize global Source of pseud-random values
 	var net Data
-	net.createModel(10, 5, 10)
-	var input = []float64{1, 2, 3, 4}
-	var prediction = net.predict(input)
-	fmt.Println(prediction)
-	return 0
-	// adata := []float64{1, 2, 3, 4}
-	// bdata := []float64{1, 2, 3, 4}
-	// a := mat.NewDense(2, 2, adata)
-	// b := mat.NewDense(2, 2, bdata)
-	// c :=
-	// fmt.Printf("% v", matmul())
 
+	// First layer must be same size as input size!
+	// Perceptron model
+	net.createModel(5, 5, 10)
+	inpData := []float64{1, 1, 1, 1, 1}
+	var inp = mat.NewDense(len(inpData), 1, inpData)
+
+	prediction := net.predict(inp)
+
+	fa := mat.Formatted(prediction, mat.Prefix("    "), mat.Squeeze())
+	fmt.Printf("mat % .2f\n\n", fa)
+	return 0 // change to return recognized digit
 }
 
+// ----------------------------------------------------------------
+// Create model data: layers, weights, biases
 func (net *Data) createModel(ls ...int32) {
 	// Define layer sizes (neurons in each layer)
 	net.layerSizes = ls
@@ -55,7 +58,7 @@ func (net *Data) createModel(ls ...int32) {
 	for i, ws := range net.weightShapes {
 		data := make([]float64, ws[0]*ws[1])
 		for j := range data {
-			data[j] = rand.NormFloat64()
+			data[j] = rand.NormFloat64() / math.Pow(float64(ws[1]), 0.5)
 		}
 		net.weights[i] = mat.NewDense(int(ws[0]), int(ws[1]), data)
 	}
@@ -70,11 +73,17 @@ func (net *Data) createModel(ls ...int32) {
 	}
 }
 
-func (net *Data) predict(input []float64) []float64 {
-	var prediction = []float64{1, 2, 3}
-	return prediction
+// Predict?
+func (net *Data) predict(input mat.Matrix) mat.Matrix {
+	for i := range net.weights {
+		dot := matmul(net.weights[i], input)
+		sum := add(dot, net.biases[i])
+		input = f(activation, sum)
+	}
+	return input
 }
 
+// ----------------------------------------------------------------
 // Add two matrices
 func add(a, b mat.Matrix) mat.Matrix {
 	m, n := a.Dims()             // Get dimensions of first matrix

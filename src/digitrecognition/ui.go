@@ -53,7 +53,7 @@ func main() {
 
 		// Run neural network to recognize digit
 		if rl.IsKeyPressed(rl.KeyR) {
-			recognizedDigit = NN()
+			//recognizedDigit = NN()
 		}
 
 		// Brush resizing
@@ -81,7 +81,7 @@ func main() {
 		if rl.IsMouseButtonPressed(rl.MouseLeftButton) || rl.GetGestureDetected() == rl.GestureDrag {
 			rl.BeginTextureMode(canvas)
 			// rl.DrawCircle(int32(mousePos.X), int32(mousePos.Y), brushSize, chosenColor)
-			rl.DrawLineEx(mousePos, mousePosLast, brushSize, chosenColor)
+			rl.DrawLineEx(mousePos, mousePosLast, brushSize*2, chosenColor)
 			rl.DrawCircle(int32(mousePos.X), int32(mousePos.Y), brushSize, chosenColor)
 			rl.EndTextureMode()
 		}

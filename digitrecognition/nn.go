@@ -18,20 +18,16 @@ type Data struct {
 	biases       []*mat.Dense
 }
 
-// Remove this after production of nn.go to run *.go
-// Seperate training and predicting
-func main() {
-	NN()
-}
-
-// NN is a neural network
-func NN() int {
+// InitNN initializes neural network
+func InitNN() int {
 	rand.Seed(time.Now().UnixNano()) // Initialize global Source of pseud-random values
 	var net Data
 
 	// First layer must be same size as input size!
 	// Perceptron model
 	net.createModel(5, 5, 10)
+
+	// --------------------------------
 	inpData := []float64{1, 1, 1, 1, 1}
 	var inp = mat.NewDense(len(inpData), 1, inpData)
 
@@ -112,4 +108,10 @@ func f(fn func(m, n int, x float64) float64, a mat.Matrix) mat.Matrix {
 // Gonums' Apply function needs m and n
 func activation(m, n int, x float64) float64 {
 	return 1.0 / (1.0 + math.Exp(-x)) // Sigmoid function
+}
+
+// Remove this after production of nn.go to run *.go
+// Seperate training and predicting
+func main() {
+	NN()
 }

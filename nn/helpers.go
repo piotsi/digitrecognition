@@ -102,7 +102,6 @@ func OpenCSV(records chan []float64, number int, mode string) {
 
 		records <- record
 	}
-	// close(records)
 	file.Close()
 }
 

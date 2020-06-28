@@ -1,12 +1,12 @@
 package main
 
 import (
-	nn "digitrecognition/nn"
 	"flag"
 	"fmt"
 	"math/rand"
 	"time"
-	// draw "github.com/piotsik/draw"
+
+	nn "github.com/piotsik/digitrecognition/nn"
 )
 
 func main() {

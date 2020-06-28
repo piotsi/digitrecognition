@@ -1,10 +1,11 @@
 package nn
 
 import (
-	"draw"
 	"fmt"
 	"strings"
 	"time"
+
+	draw "github.com/piotsik/draw"
 )
 
 // Network is three layer feedforward network (perceptron)

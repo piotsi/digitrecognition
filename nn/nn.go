@@ -1,109 +1,132 @@
 package nn
 
 import (
-	"encoding/csv"
+	"draw"
 	"fmt"
-	"io"
-	"log"
-	"os"
-	"strconv"
+	"strings"
 	"time"
-
-	"github.com/gen2brain/raylib-go/raylib"
 )
 
-func main() {
-	// d := Data{}
-	// d.Create(28, 28)
-	//
-	// d.Fill()
-
-	// fmt.Println(d.image)
-	// fmt.Println(d.mat2)
-
-	// draw.Run()
-
-	// records := make(chan []string)
-	// go openMNIST(records, 10, "train")
-	// drawDigit(records)
-	//
-	// time.Sleep(time.Millisecond)
-	// x, y, err := matSize(d.image)
-	// if err != nil {
-	// 	return
-	// }
-	// fmt.Println(x, y)
-
-	// a := [][]float64{{1, 2}, {3, 4}, {5, 6}}
-	// b := [][]float64{{1, 2, 3}, {4, 5, 6}}
-	// c, _ := matMul(a, b)
-	// m, n, _ := matSize(a)
-	// fmt.Println(c, m, n)
-	// c, _ = matScalMut(c, 2)
-	// fmt.Println(c)
+// Network is three layer feedforward network (perceptron)
+type Network struct {
+	inputNeurons  int
+	hiddenNeurons int
+	outputNeurons int
+	hiddenWeights Mat
+	outputWeights Mat
+	learingRate   float64
 }
 
-// DrawDigit takes channel and draws records taken from the channel
-func DrawDigit(records chan []string) {
-	rl.SetConfigFlags(rl.FlagVsyncHint)
-	var scale int32 = 10
-	rl.InitWindow(28*scale, 28*scale, "image")
-
-	rl.SetTargetFPS(60)
-
-	for !rl.WindowShouldClose() {
-		rl.BeginDrawing()
-
-		rl.ClearBackground(rl.RayWhite)
-
-		record, ok := <-records
-
-		if !ok {
-			time.Sleep(2000 * time.Millisecond)
-			return
-		}
-
-		for i := 0; i < 28; i++ {
-			for j := 0; j < 28; j++ {
-				intensity, _ := strconv.Atoi(string(record[j+(i*28)+1]))
-				color := rl.NewColor(uint8(intensity), uint8(intensity), uint8(intensity), 255)
-				rl.DrawRectangle(int32(j)*scale, int32(i)*scale, scale, scale, color)
-				rl.DrawText(record[0], 10, 5, 5*scale, rl.White)
-			}
-		}
-
-		time.Sleep(500 * time.Millisecond)
-
-		rl.EndDrawing()
+// Construct constructs new network
+func Construct(input, hidden, output int, rate float64) (net Network) {
+	net = Network{
+		inputNeurons:  input,
+		hiddenNeurons: hidden,
+		outputNeurons: output,
+		learingRate:   rate,
 	}
 
-	rl.CloseWindow()
+	net.hiddenWeights = CreateRandom(net.hiddenNeurons, net.inputNeurons, float64(net.inputNeurons))
+	net.outputWeights = CreateRandom(net.outputNeurons, net.hiddenNeurons, float64(net.hiddenNeurons))
+
+	return
 }
 
-// OpenMNIST takes channel, number of numbers to read and mode (test/train) and puts records to the channel
-func OpenMNIST(records chan []string, number int, mode string) {
-	if mode != "train" && mode != "test" {
+// Predict predicts values
+func (net Network) Predict(record []float64) Mat {
+	hiddenInputs := Dot(net.hiddenWeights, SliceToMat(record[1:]))
+	hiddenOutputs := ApplyFunc(hiddenInputs, Sigmoid)
+	finalInputs := Dot(net.outputWeights, hiddenOutputs)
+	finalOutputs := ApplyFunc(finalInputs, Sigmoid)
+
+	return finalOutputs
+}
+
+// Train trains
+func (net *Network) Train(record []float64) {
+	hiddenInputs := Dot(net.hiddenWeights, SliceToMat(record[1:]))
+	hiddenOutputs := ApplyFunc(hiddenInputs, Sigmoid)
+	finalInputs := Dot(net.outputWeights, hiddenOutputs)
+	finalOutputs := ApplyFunc(finalInputs, Sigmoid)
+
+	targetsSlice := make([]float64, 10)
+	for i := range targetsSlice {
+		targetsSlice[i] = 0.01
+	}
+	targetsSlice[int(record[0])] = 0.99
+	targets := SliceToMat(targetsSlice)
+
+	errorOutputs := Subtract(targets, finalOutputs)
+	errorsHidden := Dot(Transpose(net.outputWeights), errorOutputs)
+
+	net.outputWeights = Add(net.outputWeights,
+		ScalarMul(
+			Dot(Mul(errorOutputs, ApplyFunc(finalOutputs, SigmoidPrime)), Transpose(hiddenOutputs)),
+			net.learingRate))
+	net.hiddenWeights = Add(net.hiddenWeights,
+		ScalarMul(
+			Dot(Mul(errorsHidden, ApplyFunc(hiddenOutputs, SigmoidPrime)), Transpose(SliceToMat(record[1:]))),
+			net.learingRate))
+}
+
+// TrainFromData trains the network from the provided data
+func TrainFromData(net *Network) {
+	epochs := 5
+	toTrain := 60000
+
+	for epoch := 0; epoch < epochs; epoch++ {
+		records := make(chan []float64)
+		go OpenCSV(records, toTrain, "mnist_train")
+		i := 1
+		for {
+			record, ok := <-records
+			if !ok {
+				break
+			}
+			net.Train(record)
+			fmt.Printf("Training%-3s Epoch: %d/%d Record: %5d/%d   %3d%%\r", strings.Repeat(".", i%4), epoch+1, epochs, i, toTrain, 100*(epoch*toTrain+i)/(epochs*toTrain))
+			i++
+		}
+		close(records)
+	}
+}
+
+// PredictFromData predicts the input
+func PredictFromData(net *Network, mode string) {
+	if mode == "image" {
+		records := make(chan []float64)
+
+		go func() {
+			for {
+				record, _ := <-records
+
+				a, b := Classify(net.Predict(record))
+				draw.Text = fmt.Sprintf("looks to me like %d, i'm %d%% sure", a, b)
+				time.Sleep(1 * time.Second)
+			}
+		}()
+		go func() {
+			for {
+				PNGtoCSV()
+				OpenCSV(records, 100, mode)
+			}
+		}()
+		draw.Run(true)
 		return
 	}
+	records := make(chan []float64)
+	go OpenCSV(records, 100, mode)
 
-	path := fmt.Sprintf("data/mnist_%s.csv", mode)
-	// path := "data/image.csv"
-	file, err := os.Open(path)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	reader := csv.NewReader(file)
-
-	for i := 0; i < number; i++ {
-		record, err := reader.Read()
-		if err == io.EOF {
+	for {
+		record, ok := <-records
+		if !ok {
 			break
 		}
-		if err != nil {
-			log.Fatal(err)
-		}
-		records <- record
+
+		DrawDigitTerminal(record)
+		a, b := Classify(net.Predict(record))
+		fmt.Printf("looks to me like %d, i'm %d%% sure\n", a, b)
 	}
-	close(records)
+
+	return
 }

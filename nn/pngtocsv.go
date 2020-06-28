@@ -3,7 +3,7 @@ package nn
 import (
 	"encoding/csv"
 	"image"
-	_ "image/png" // a
+	_ "image/png" // image/png
 	"log"
 	"os"
 	"strconv"
@@ -35,11 +35,11 @@ func PNGtoCSV() {
 
 	bounds := src.Bounds()
 	width, height := bounds.Max.X, bounds.Max.Y
-	data := []string{"unrcgnzd"}
+	data := []string{"10"}
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
 			gray, _, _, _ := src.At(x, y).RGBA()
-			data = append(data, strconv.Itoa(int(gray)/257))
+			data = append(data, strconv.Itoa(int(gray/257)))
 		}
 	}
 
@@ -47,5 +47,4 @@ func PNGtoCSV() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 }
